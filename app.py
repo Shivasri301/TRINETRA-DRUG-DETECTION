@@ -571,6 +571,14 @@ def internal_error(error):
 # Make app available for gunicorn app:app (Render auto-detection)
 application = app
 
+# Production configuration for Render
+if os.getenv('FLASK_ENV') == 'production':
+    app.config['ENV'] = 'production'
+    app.config['DEBUG'] = False
+    app.config['TESTING'] = False
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
