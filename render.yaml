@@ -5,8 +5,6 @@ services:
     buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 wsgi:application
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.12
       - key: PORT
         generateValue: true
       - key: MONGODB_URI
