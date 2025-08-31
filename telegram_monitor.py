@@ -9,8 +9,16 @@ from bson import ObjectId
 
 class TelegramMonitor:
     def __init__(self):
-        # Load HuggingFace NLP model
-        self.classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+        # Load HuggingFace NLP model with error handling
+        try:
+            self.classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+            self.ai_available = True
+            print("✅ AI model loaded successfully")
+        except Exception as e:
+            print(f"⚠️ AI model failed to load: {e}")
+            print("📝 Falling back to keyword-only analysis")
+            self.classifier = None
+            self.ai_available = False
         
         # Define categories for classification
         self.labels = ["drug sale", "normal", "spam", "other"]
@@ -122,13 +130,18 @@ class TelegramMonitor:
                 elif category == "emojis":
                     confidence_boost += 0.1
         
-        # NLP classification
-        try:
-            nlp_result = self.classifier(text, candidate_labels=self.labels)
-            nlp_prediction = nlp_result["labels"][0]
-            nlp_confidence = nlp_result["scores"][0]
-        except Exception as e:
-            print(f"NLP analysis failed: {e}, using keyword-only")
+        # NLP classification (if available)
+        if self.ai_available and self.classifier:
+            try:
+                nlp_result = self.classifier(text, candidate_labels=self.labels)
+                nlp_prediction = nlp_result["labels"][0]
+                nlp_confidence = nlp_result["scores"][0]
+            except Exception as e:
+                print(f"NLP analysis failed: {e}, using keyword-only")
+                nlp_prediction = "normal"
+                nlp_confidence = 0.5
+        else:
+            # AI not available, use keyword-only analysis
             nlp_prediction = "normal"
             nlp_confidence = 0.5
         
