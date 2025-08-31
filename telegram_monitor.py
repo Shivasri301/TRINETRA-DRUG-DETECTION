@@ -55,15 +55,23 @@ class TelegramMonitor:
         results = []
         
         try:
-            # Create session name based on channel to avoid conflicts
-            session_name = f"monitor_session_{channel_id}"
+            # Try to use existing authenticated session first
+            session_name = "authenticated_session"
+            if not os.path.exists(f"{session_name}.session"):
+                # Fallback to channel-specific session
+                session_name = f"monitor_session_{channel_id}"
             
-            async with TelegramClient(session_name, api_id, api_hash) as client:
-                # If phone number provided, authenticate
-                if phone_number:
-                    if not await client.is_user_authorized():
-                        await client.send_code_request(phone_number)
-                
+            client = TelegramClient(session_name, api_id, api_hash)
+            await client.connect()
+            
+            # Check if client is authorized
+            if not await client.is_user_authorized():
+                await client.disconnect()
+                raise Exception("Telegram session not authenticated. Please link your Telegram account first.")
+            
+            print(f"✅ Connected to Telegram for channel monitoring")
+            
+            try:
                 async for message in client.iter_messages(channel_link, reverse=True, limit=100):
                     text = message.text or ""
                     if text.strip():
@@ -91,6 +99,11 @@ class TelegramMonitor:
                 
                 # Update channel last monitored time
                 db.update_channel_status(channel_id, "monitored", datetime.utcnow())
+                print(f"✅ Successfully monitored {len(results)} messages")
+                
+            finally:
+                # Always disconnect the client
+                await client.disconnect()
                 
         except Exception as e:
             print(f"Error monitoring channel: {str(e)}")
