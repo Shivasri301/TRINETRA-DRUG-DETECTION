@@ -11,9 +11,17 @@ class TelegramMonitor:
     def __init__(self):
         # Load HuggingFace NLP model with error handling
         try:
-            self.classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+            # Force PyTorch backend to avoid TensorFlow issues
+            from transformers import pipeline
+            import torch
+            self.classifier = pipeline(
+                "zero-shot-classification", 
+                model="facebook/bart-large-mnli",
+                framework="pt",  # Force PyTorch
+                device="cpu"     # Force CPU usage
+            )
             self.ai_available = True
-            print("✅ AI model loaded successfully")
+            print("✅ AI model loaded successfully with PyTorch")
         except Exception as e:
             print(f"⚠️ AI model failed to load: {e}")
             print("📝 Falling back to keyword-only analysis")

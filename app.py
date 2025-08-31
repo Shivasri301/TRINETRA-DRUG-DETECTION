@@ -286,19 +286,31 @@ def monitor_channel_route(channel_id):
     user = db.get_user_by_username(username)
     
     try:
+        # Check if user has Telegram linked
+        if not user.get('telegram_linked', False):
+            return jsonify({'success': False, 'message': 'Please link your Telegram account first'})
+        
         # Get channel info
         channel = db.channels.find_one({'_id': ObjectId(channel_id), 'username': username})
         if not channel:
             return jsonify({'success': False, 'message': 'Channel not found'})
         
-        # Run monitoring using async helper
-        results = telegram_helper.monitor_channel(
-            user['api_id'], 
-            user['api_hash'], 
-            channel['channel_link'], 
-            channel_id,
-            None  # No phone number needed for public channels
-        )
+        # Run monitoring using the monitor instance directly with asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        try:
+            results = loop.run_until_complete(
+                monitor.analyze_channel(
+                    user['api_id'], 
+                    user['api_hash'], 
+                    channel['channel_link'], 
+                    channel_id,
+                    user.get('phone_number')  # Use stored phone number
+                )
+            )
+        finally:
+            loop.close()
         
         return jsonify({
             'success': True, 
@@ -308,7 +320,8 @@ def monitor_channel_route(channel_id):
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
+        print(f"Monitoring error: {str(e)}")
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
 
 @app.route('/view_results/<channel_id>')
 def view_results(channel_id):
