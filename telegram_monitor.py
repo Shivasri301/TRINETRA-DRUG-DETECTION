@@ -1,7 +1,6 @@
 import csv
 import asyncio
 from telethon import TelegramClient
-from transformers import pipeline
 from datetime import datetime
 import os
 from database import db
@@ -9,24 +8,11 @@ from bson import ObjectId
 
 class TelegramMonitor:
     def __init__(self):
-        # Load HuggingFace NLP model with error handling
-        try:
-            # Force PyTorch backend to avoid TensorFlow issues
-            from transformers import pipeline
-            import torch
-            self.classifier = pipeline(
-                "zero-shot-classification", 
-                model="facebook/bart-large-mnli",
-                framework="pt",  # Force PyTorch
-                device="cpu"     # Force CPU usage
-            )
-            self.ai_available = True
-            print("✅ AI model loaded successfully with PyTorch")
-        except Exception as e:
-            print(f"⚠️ AI model failed to load: {e}")
-            print("📝 Falling back to keyword-only analysis")
-            self.classifier = None
-            self.ai_available = False
+        # Use reliable keyword-based analysis only
+        print("🚀 Initializing keyword-based drug detection system")
+        self.classifier = None
+        self.ai_available = False
+        print("✅ Keyword-based detection system ready")
         
         # Define categories for classification
         self.labels = ["drug sale", "normal", "spam", "other"]
