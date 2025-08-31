@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Link Telegram - Telegram Drug Monitor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h4 class="mb-0"><i class="fab fa-telegram"></i> Link Telegram Account</h4>
+            </div>
+            <div class="card-body">
+                <!-- Session Check Section -->
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-success w-100" onclick="checkExistingSession()" id="checkSessionBtn">
+                        <i class="fas fa-search"></i> Check for Existing Telegram Sessions
+                    </button>
+                    <small class="form-text text-muted">If you've already authenticated with Telegram before, click here to skip OTP verification.</small>
+                </div>
+                
+                <hr>
+                
+                <!-- Phone Number Entry Section -->
+                <div id="phoneSection">
+                    <p class="text-muted">Enter your phone number to link your Telegram account. We'll send you an OTP via Telegram.</p>
+                    
+                    <div class="mb-3">
+                        <label for="phone_number" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                               placeholder="+91XXXXXXXXXX" required>
+                        <div class="form-text">Enter your phone number in international format (e.g., +91XXXXXXXXXX)</div>
+                    </div>
+                    
+                    <button type="button" class="btn btn-info w-100" onclick="sendOTP()" id="sendOtpBtn">
+                        <i class="fas fa-phone"></i> Send OTP
+                    </button>
+                </div>
+                
+                <!-- OTP Verification Section -->
+                <div id="otpSection" style="display: none;">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i>
+                        OTP sent to your Telegram account! Check your Telegram app for the verification code.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="otp_code" class="form-label">Verification Code</label>
+                        <input type="text" class="form-control" id="otp_code" name="otp_code" 
+                               placeholder="12345" maxlength="6" required>
+                        <div class="form-text">Enter the code sent to your Telegram</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success" onclick="verifyOTP()" id="verifyOtpBtn">
+                            <i class="fas fa-link"></i> Verify & Link Account
+                        </button>
+                        
+                        <button type="button" class="btn btn-outline-secondary" onclick="resendOTP()" id="resendOtpBtn">
+                            <i class="fas fa-redo"></i> Resend OTP
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Status Messages -->
+                <div id="statusMessage" class="mt-3"></div>
+                
+                <hr>
+                <div class="text-center">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPhoneNumber = null;
+
+function showStatus(message, type = 'info') {
+    const statusDiv = document.getElementById('statusMessage');
+    const alertClass = type === 'success' ? 'alert-success' : 
+                      type === 'error' ? 'alert-danger' : 'alert-info';
+    
+    statusDiv.innerHTML = `
+        <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'}-circle"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+}
+
+function setButtonLoading(buttonId, isLoading, originalText) {
+    const button = document.getElementById(buttonId);
+    if (isLoading) {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    } else {
+        button.disabled = false;
+        button.innerHTML = originalText;
+    }
+}
+
+function checkExistingSession() {
+    setButtonLoading('checkSessionBtn', true, '<i class="fas fa-search"></i> Check for Existing Telegram Sessions');
+    
+    fetch('/check_existing_session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatus(data.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+        } else {
+            showStatus(data.message, 'error');
+            setButtonLoading('checkSessionBtn', false, '<i class="fas fa-search"></i> Check for Existing Telegram Sessions');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showStatus('Error checking for existing sessions', 'error');
+        setButtonLoading('checkSessionBtn', false, '<i class="fas fa-search"></i> Check for Existing Telegram Sessions');
+    });
+}
+
+function sendOTP() {
+    const phoneNumber = document.getElementById('phone_number').value;
+    
+    if (!phoneNumber) {
+        showStatus('Please enter your phone number', 'error');
+        return;
+    }
+    
+    currentPhoneNumber = phoneNumber;
+    setButtonLoading('sendOtpBtn', true, '<i class="fas fa-phone"></i> Send OTP');
+    
+    fetch('/send_otp_dashboard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone_number: phoneNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatus(data.message, 'success');
+            document.getElementById('phoneSection').style.display = 'none';
+            document.getElementById('otpSection').style.display = 'block';
+        } else {
+            showStatus(data.message, 'error');
+        }
+        setButtonLoading('sendOtpBtn', false, '<i class="fas fa-phone"></i> Send OTP');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showStatus('Error sending OTP', 'error');
+        setButtonLoading('sendOtpBtn', false, '<i class="fas fa-phone"></i> Send OTP');
+    });
+}
+
+function verifyOTP() {
+    const otpCode = document.getElementById('otp_code').value;
+    
+    if (!otpCode) {
+        showStatus('Please enter the OTP code', 'error');
+        return;
+    }
+    
+    if (!currentPhoneNumber) {
+        showStatus('Phone number not found. Please refresh the page and try again.', 'error');
+        return;
+    }
+    
+    setButtonLoading('verifyOtpBtn', true, '<i class="fas fa-link"></i> Verify & Link Account');
+    
+    fetch('/verify_otp_dashboard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+            phone_number: currentPhoneNumber,
+            otp_code: otpCode 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatus(data.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+        } else {
+            showStatus(data.message, 'error');
+            setButtonLoading('verifyOtpBtn', false, '<i class="fas fa-link"></i> Verify & Link Account');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showStatus('Error verifying OTP', 'error');
+        setButtonLoading('verifyOtpBtn', false, '<i class="fas fa-link"></i> Verify & Link Account');
+    });
+}
+
+function resendOTP() {
+    if (!currentPhoneNumber) {
+        showStatus('Phone number not found. Please refresh the page and try again.', 'error');
+        return;
+    }
+    
+    setButtonLoading('resendOtpBtn', true, '<i class="fas fa-redo"></i> Resend OTP');
+    
+    fetch('/send_otp_dashboard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone_number: currentPhoneNumber })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showStatus('OTP resent successfully!', 'success');
+        } else {
+            showStatus(data.message, 'error');
+        }
+        setButtonLoading('resendOtpBtn', false, '<i class="fas fa-redo"></i> Resend OTP');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showStatus('Error resending OTP', 'error');
+        setButtonLoading('resendOtpBtn', false, '<i class="fas fa-redo"></i> Resend OTP');
+    });
+}
+
+// Handle Enter key for OTP input
+document.addEventListener('DOMContentLoaded', function() {
+    const otpInput = document.getElementById('otp_code');
+    if (otpInput) {
+        otpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyOTP();
+            }
+        });
+    }
+    
+    const phoneInput = document.getElementById('phone_number');
+    if (phoneInput) {
+        phoneInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendOTP();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

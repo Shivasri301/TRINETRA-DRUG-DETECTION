@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - Telegram Drug Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-exclamation-triangle text-danger"></i> Security Alerts</h2>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+        <i class="fas fa-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+{% if alerts %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-shield-alt"></i> 
+                    {{ alerts|length }} Alert{{ 's' if alerts|length != 1 else '' }} Found
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Filter and Sort Controls -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="filterStatus" class="form-label">Filter by Status:</label>
+                        <select class="form-select" id="filterStatus" onchange="filterAlerts()">
+                            <option value="all">All Alerts</option>
+                            <option value="new">New Alerts</option>
+                            <option value="dismissed">Dismissed Alerts</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="sortBy" class="form-label">Sort by:</label>
+                        <select class="form-select" id="sortBy" onchange="sortAlerts()">
+                            <option value="date">Date (Newest First)</option>
+                            <option value="confidence">Confidence (Highest First)</option>
+                            <option value="channel">Channel</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Alerts List -->
+                <div id="alertsContainer">
+                    {% for alert in alerts %}
+                    <div class="alert alert-{{ 'danger' if alert.status == 'new' else 'secondary' }} alert-card mb-3"
+                         data-status="{{ alert.status }}" 
+                         data-confidence="{{ alert.confidence }}" 
+                         data-date="{{ alert.created_at.isoformat() }}"
+                         data-channel="{{ alert.channel_id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-skull-crossbones"></i> 
+                                    Drug Sale Activity Detected
+                                    <span class="badge bg-dark ms-2">{{ "%.1f"|format(alert.confidence * 100) }}% confidence</span>
+                                    {% if alert.status == 'new' %}
+                                    <span class="badge bg-warning text-dark ms-1">NEW</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary ms-1">DISMISSED</span>
+                                    {% endif %}
+                                </h6>
+                                
+                                <div class="message-content p-2 bg-light rounded mb-2">
+                                    <strong>Suspicious Message:</strong><br>
+                                    "{{ alert.message_text }}"
+                                </div>
+                                
+                                <div class="alert-metadata">
+                                    <small class="text-muted">
+                                        <i class="fas fa-clock"></i> {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        <i class="fas fa-envelope ms-3"></i> Message ID: {{ alert.message_id }}
+                                        <i class="fas fa-link ms-3"></i> Channel ID: {{ alert.channel_id }}
+                                    </small>
+                                </div>
+                                
+                                {% if alert.status == 'dismissed' and alert.get('dismissed_at') %}
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-check"></i> Dismissed on {{ alert.dismissed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                    </small>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="alert-actions">
+                                {% if alert.status == 'new' %}
+                                <button class="btn btn-sm btn-outline-success me-2" 
+                                        onclick="dismissAlert('{{ alert._id }}')">
+                                    <i class="fas fa-check"></i> Mark Safe
+                                </button>
+                                {% endif %}
+                                <a href="{{ url_for('view_results', channel_id=alert.channel_id) }}" 
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-chart-bar"></i> View Channel
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card text-center bg-danger text-white">
+            <div class="card-body">
+                <h4>{{ alerts|selectattr('status', 'equalto', 'new')|list|length }}</h4>
+                <p class="mb-0">New Alerts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-secondary text-white">
+            <div class="card-body">
+                <h4>{{ alerts|selectattr('status', 'equalto', 'dismissed')|list|length }}</h4>
+                <p class="mb-0">Dismissed</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-white">
+            <div class="card-body">
+                <h4>{{ "%.1f"|format((alerts|selectattr('confidence', 'gt', 0.8)|list|length / alerts|length * 100) if alerts|length > 0 else 0) }}%</h4>
+                <p class="mb-0">High Confidence</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-info text-white">
+            <div class="card-body">
+                <h4>{{ alerts|map(attribute='channel_id')|unique|list|length }}</h4>
+                <p class="mb-0">Affected Channels</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="text-center py-5">
+    <i class="fas fa-shield-alt fa-4x text-success mb-3"></i>
+    <h3 class="text-muted">No Alerts</h3>
+    <p class="text-muted">Great! No suspicious drug-related activity has been detected in your monitored channels.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add Channels to Monitor
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterAlerts() {
+    const filterStatus = document.getElementById('filterStatus').value;
+    const alerts = document.querySelectorAll('[data-status]');
+    
+    alerts.forEach(alert => {
+        const status = alert.dataset.status;
+        if (filterStatus === 'all' || status === filterStatus) {
+            alert.style.display = 'block';
+        } else {
+            alert.style.display = 'none';
+        }
+    });
+}
+
+function sortAlerts() {
+    const sortBy = document.getElementById('sortBy').value;
+    const container = document.getElementById('alertsContainer');
+    const alerts = Array.from(container.children);
+    
+    alerts.sort((a, b) => {
+        switch(sortBy) {
+            case 'confidence':
+                return parseFloat(b.dataset.confidence) - parseFloat(a.dataset.confidence);
+            case 'channel':
+                return a.dataset.channel.localeCompare(b.dataset.channel);
+            case 'date':
+            default:
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+        }
+    });
+    
+    // Re-append sorted alerts
+    alerts.forEach(alert => container.appendChild(alert));
+}
+
+function dismissAlert(alertId) {
+    if (confirm('Are you sure you want to mark this alert as safe?')) {
+        fetch(`/dismiss_alert/${alertId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error dismissing alert');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

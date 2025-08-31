@@ -1,0 +1,565 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Telegram Drug Monitor{% endblock %}
+
+{% block content %}
+<!-- Welcome Message -->
+<div class="alert alert-info">
+    <i class="fas fa-shield-alt"></i>
+    <strong>Welcome to Telegram Drug Monitor!</strong> 
+    {% if not user.telegram_linked %}
+        Please link your Telegram account first to start monitoring channels.
+    {% else %}
+        Add Telegram channel links below to start monitoring for drug-related activities.
+    {% endif %}
+</div>
+
+<!-- Telegram Authentication Section -->
+{% if not user.telegram_linked %}
+<div class="row mb-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fab fa-telegram"></i> Link Telegram Account Required</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Action Required:</strong> You must link your Telegram account to monitor channels.
+                </div>
+                
+                <!-- Check Existing Sessions First -->
+                <div class="mb-3">
+                    <button type="button" class="btn btn-info w-100" onclick="checkExistingSession()">
+                        <i class="fas fa-search"></i> Check for Existing Telegram Sessions
+                    </button>
+                    <div class="form-text text-center">If you've already authenticated Telegram before, click here first</div>
+                </div>
+                
+                <hr>
+                
+                <div id="telegram-auth-section">
+                    <!-- Phone Number Input -->
+                    <div id="phone-input-section">
+                        <form id="send-otp-form">
+                            <div class="mb-3">
+                                <label for="phone_number" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                       placeholder="+91XXXXXXXXXX" required>
+                                <div class="form-text">Enter your phone number in international format (e.g., +91XXXXXXXXXX)</div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-warning w-100">
+                                <i class="fas fa-phone"></i> Send OTP to Telegram
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- OTP Verification Section (initially hidden) -->
+                    <div id="otp-verification-section" style="display: none;">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            OTP sent to your Telegram account! Check your Telegram app for the verification code.
+                        </div>
+                        
+                        <form id="verify-otp-form">
+                            <input type="hidden" id="verified_phone_number" name="phone_number">
+                            <div class="mb-3">
+                                <label for="otp_code" class="form-label">Verification Code</label>
+                                <input type="text" class="form-control" id="otp_code" name="otp_code" 
+                                       placeholder="12345" maxlength="5" required>
+                                <div class="form-text">Enter the 5-digit code sent to your Telegram</div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="fas fa-link"></i> Verify & Link Account
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-outline-secondary w-100" onclick="resendOTP()">
+                                        <i class="fas fa-redo"></i> Resend OTP
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Add Channel Section -->
+{% if user.telegram_linked %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Add Channel to Monitor</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('add_channel') }}">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="url" class="form-control" name="channel_link" 
+                                   placeholder="https://t.me/channelname" required>
+                            <div class="form-text">Enter a public Telegram channel link to monitor</div>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-eye"></i> Start Monitoring
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h3>{{ alerts|length }}</h3>
+                <p class="mb-0"><i class="fas fa-exclamation-triangle"></i> Active Alerts</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Channels List -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Monitored Channels</h5>
+                <button class="btn btn-outline-primary btn-sm" onclick="refreshAll()">
+                    <i class="fas fa-sync-alt"></i> Refresh All
+                </button>
+            </div>
+            <div class="card-body">
+                {% if channels %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Channel</th>
+                                <th>Status</th>
+                                <th>Last Monitored</th>
+                                <th>Suspicious Messages</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for channel in channels %}
+                            <tr>
+                                <td>
+                                    <a href="{{ channel.channel_link }}" target="_blank" class="text-decoration-none">
+                                        <i class="fab fa-telegram"></i> 
+                                        {{ channel.channel_name or channel.channel_link|replace('https://t.me/', '@') }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if channel.status == 'active' %}
+                                        <span class="badge bg-primary">Active</span>
+                                    {% elif channel.status == 'monitored' %}
+                                        <span class="badge bg-success">Monitored</span>
+                                    {% elif channel.status == 'error' %}
+                                        <span class="badge bg-danger">Error</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ channel.status|title }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if channel.last_monitored %}
+                                        {{ channel.last_monitored.strftime('%Y-%m-%d %H:%M') }}
+                                    {% else %}
+                                        <span class="text-muted">Never</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning">
+                                        {{ channel.suspicious_count or 0 }} messages
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" 
+                                                onclick="monitorChannel('{{ channel._id }}')">
+                                            <i class="fas fa-sync-alt"></i> Monitor
+                                        </button>
+                                        <a href="{{ url_for('view_results', channel_id=channel._id) }}" 
+                                           class="btn btn-outline-info">
+                                            <i class="fas fa-chart-bar"></i> Results
+                                        </a>
+                                        <button class="btn btn-outline-danger" 
+                                                onclick="removeChannel('{{ channel._id }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No channels added yet</h5>
+                    {% if user.telegram_linked %}
+                        <p class="text-muted">Add a Telegram channel link above to start monitoring</p>
+                    {% else %}
+                        <p class="text-muted">Link your Telegram account first to start adding channels</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Alerts -->
+{% if alerts %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Recent Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% for alert in alerts[:5] %}
+                <div class="alert alert-danger alert-card mb-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="alert-heading">
+                                <i class="fas fa-skull-crossbones"></i> Drug Sale Detected
+                                <span class="badge bg-dark ms-2">{{ "%.1f"|format(alert.confidence * 100) }}% confidence</span>
+                            </h6>
+                            <p class="mb-1">{{ alert.message_text[:100] }}{% if alert.message_text|length > 100 %}...{% endif %}</p>
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> {{ alert.created_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                            </small>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger" onclick="dismissAlert('{{ alert._id }}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if alerts|length > 5 %}
+                <div class="text-center">
+                    <a href="{{ url_for('view_alerts') }}" class="btn btn-outline-danger">
+                        View All {{ alerts|length }} Alerts
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center p-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0">Monitoring channel...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function monitorChannel(channelId) {
+    // Show loading modal
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+    
+    fetch(`/monitor_channel/${channelId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        modal.hide();
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        modal.hide();
+        alert('Error monitoring channel: ' + error);
+    });
+}
+
+function refreshAll() {
+    // Show loading state
+    const refreshBtn = document.querySelector('button[onclick="refreshAll()"]');
+    const originalHtml = refreshBtn.innerHTML;
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    refreshBtn.disabled = true;
+    
+    // Add a small delay to show the loading state
+    setTimeout(() => {
+        location.reload();
+    }, 500);
+}
+
+function removeChannel(channelId) {
+    if (confirm('Are you sure you want to remove this channel?')) {
+        fetch(`/remove_channel/${channelId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        });
+    }
+}
+
+function dismissAlert(alertId) {
+    fetch(`/dismiss_alert/${alertId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+// Telegram Authentication Functions
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle Send OTP form
+    const sendOtpForm = document.getElementById('send-otp-form');
+    if (sendOtpForm) {
+        sendOtpForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            sendOTP();
+        });
+    }
+    
+    // Handle Verify OTP form
+    const verifyOtpForm = document.getElementById('verify-otp-form');
+    if (verifyOtpForm) {
+        verifyOtpForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            verifyOTP();
+        });
+    }
+});
+
+function sendOTP() {
+    const phoneNumber = document.getElementById('phone_number').value;
+    
+    console.log('DEBUG: sendOTP called with phone:', phoneNumber);
+    
+    if (!phoneNumber) {
+        alert('Please enter a phone number');
+        return;
+    }
+    
+    // Disable button and show loading
+    const submitBtn = document.querySelector('#send-otp-form button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending OTP...';
+    submitBtn.disabled = true;
+    
+    const requestData = {
+        phone_number: phoneNumber
+    };
+    
+    console.log('DEBUG: Sending OTP request:', requestData);
+    
+    fetch('/send_otp_dashboard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('DEBUG: OTP Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('DEBUG: OTP Response data:', data);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        
+        if (data.success) {
+            // Hide phone input section and show OTP section
+            document.getElementById('phone-input-section').style.display = 'none';
+            document.getElementById('otp-verification-section').style.display = 'block';
+            document.getElementById('verified_phone_number').value = phoneNumber;
+            
+            // Show success message
+            showMessage('OTP sent to your Telegram account! Check your Telegram app.', 'success');
+        } else {
+            showMessage('Error sending OTP: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('DEBUG: OTP Fetch error:', error);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        showMessage('Error sending OTP: ' + error.message, 'error');
+    });
+}
+
+function verifyOTP() {
+    const phoneNumber = document.getElementById('verified_phone_number').value;
+    const otpCode = document.getElementById('otp_code').value;
+    
+    console.log('DEBUG: verifyOTP called with:', { phoneNumber, otpCode });
+    
+    if (!otpCode) {
+        alert('Please enter the verification code');
+        return;
+    }
+    
+    if (!phoneNumber) {
+        alert('Phone number is missing. Please try sending OTP again.');
+        resendOTP();
+        return;
+    }
+    
+    // Disable button and show loading
+    const submitBtn = document.querySelector('#verify-otp-form button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    submitBtn.disabled = true;
+    
+    const requestData = {
+        phone_number: phoneNumber,
+        otp_code: otpCode
+    };
+    
+    console.log('DEBUG: Sending verification request:', requestData);
+    
+    fetch('/verify_otp_dashboard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => {
+        console.log('DEBUG: Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('DEBUG: Response data:', data);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        
+        if (data.success) {
+            showMessage('Telegram account linked successfully!', 'success');
+            // Reload page to refresh the dashboard
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            showMessage('Error verifying OTP: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('DEBUG: Fetch error:', error);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+        showMessage('Error verifying OTP: ' + error.message, 'error');
+    });
+}
+
+function resendOTP() {
+    // Reset to phone input section
+    document.getElementById('otp-verification-section').style.display = 'none';
+    document.getElementById('phone-input-section').style.display = 'block';
+    document.getElementById('otp_code').value = '';
+    showMessage('Please enter your phone number again to resend OTP', 'info');
+}
+
+function checkExistingSession() {
+    const checkBtn = document.querySelector('button[onclick="checkExistingSession()"]');
+    const originalText = checkBtn.innerHTML;
+    checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking Sessions...';
+    checkBtn.disabled = true;
+    
+    fetch('/check_existing_session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        checkBtn.innerHTML = originalText;
+        checkBtn.disabled = false;
+        
+        if (data.success) {
+            showMessage('Existing session found and linked! ' + data.message, 'success');
+            // Reload page to refresh the dashboard
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showMessage('No existing sessions found. Please authenticate manually below.', 'warning');
+        }
+    })
+    .catch(error => {
+        checkBtn.innerHTML = originalText;
+        checkBtn.disabled = false;
+        showMessage('Error checking sessions: ' + error, 'error');
+    });
+}
+
+function showMessage(message, type) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'info'} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at the top of main content
+    const mainContent = document.querySelector('main .container');
+    const firstChild = mainContent.firstElementChild;
+    mainContent.insertBefore(alertDiv, firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

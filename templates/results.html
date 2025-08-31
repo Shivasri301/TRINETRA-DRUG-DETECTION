@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Channel Results - Telegram Drug Monitor{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-chart-bar"></i> Channel Monitoring Results</h2>
+    <div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <a href="{{ url_for('export_csv', channel_id=channel._id) }}" class="btn btn-success">
+            <i class="fas fa-download"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Channel Info -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fab fa-telegram"></i> 
+            {{ channel.channel_name or channel.channel_link|replace('https://t.me/', '@') }}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <strong>Channel Link:</strong><br>
+                <a href="{{ channel.channel_link }}" target="_blank">{{ channel.channel_link }}</a>
+            </div>
+            <div class="col-md-3">
+                <strong>Status:</strong><br>
+                <span class="badge bg-{{ 'success' if channel.status == 'monitored' else 'primary' if channel.status == 'active' else 'danger' }}">
+                    {{ channel.status|title }}
+                </span>
+            </div>
+            <div class="col-md-3">
+                <strong>Last Monitored:</strong><br>
+                {{ channel.last_monitored.strftime('%Y-%m-%d %H:%M') if channel.last_monitored else 'Never' }}
+            </div>
+            <div class="col-md-3">
+                <strong>Total Messages:</strong><br>
+                {{ results|length }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center bg-danger text-white">
+            <div class="card-body">
+                <h3>{{ suspicious_count }}</h3>
+                <p class="mb-0">Suspicious Messages</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+            <div class="card-body">
+                <h3>{{ normal_count }}</h3>
+                <p class="mb-0">Normal Messages</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-warning text-white">
+            <div class="card-body">
+                <h3>{{ spam_count }}</h3>
+                <p class="mb-0">Spam Messages</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center bg-info text-white">
+            <div class="card-body">
+                <h3>{{ other_count }}</h3>
+                <p class="mb-0">Other Messages</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Options -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <label for="filterType" class="form-label">Filter by Type:</label>
+                <select class="form-select" id="filterType" onchange="filterResults()">
+                    <option value="all">All Messages</option>
+                    <option value="drug sale">Suspicious Only</option>
+                    <option value="normal">Normal Only</option>
+                    <option value="spam">Spam Only</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="sortBy" class="form-label">Sort by:</label>
+                <select class="form-select" id="sortBy" onchange="sortResults()">
+                    <option value="date">Date (Newest First)</option>
+                    <option value="confidence">Confidence (Highest First)</option>
+                    <option value="prediction">Prediction Type</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-comments"></i> Messages Analysis</h5>
+    </div>
+    <div class="card-body">
+        {% if results %}
+        <div id="resultsContainer">
+            {% for result in results %}
+            <div class="message-item mb-3 p-3 border rounded 
+                        {{ 'drug-alert' if result.prediction == 'drug sale' else 'normal-message' if result.prediction == 'normal' else '' }}"
+                 data-prediction="{{ result.prediction }}" data-confidence="{{ result.confidence }}" 
+                 data-date="{{ result.date.isoformat() }}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="mb-2">
+                            <span class="badge {{ 'suspicious-badge' if result.prediction == 'drug sale' else 'safe-badge' if result.prediction == 'normal' else 'bg-secondary' }} text-white">
+                                {{ result.prediction|upper }}
+                            </span>
+                            <span class="badge bg-primary ms-1">{{ "%.1f"|format(result.confidence * 100) }}%</span>
+                            {% if result.keyword_matches %}
+                            <span class="badge bg-warning text-dark ms-1">
+                                <i class="fas fa-tags"></i> {{ result.keyword_matches|length }} keywords
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <p class="mb-2">{{ result.message_text }}</p>
+                        
+                        {% if result.keyword_matches %}
+                        <div class="mb-2">
+                            <small class="text-muted">Matched keywords:</small>
+                            {% for keyword in result.keyword_matches %}
+                            <span class="badge bg-warning text-dark me-1">{{ keyword }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        <small class="text-muted">
+                            <i class="fas fa-clock"></i> {{ result.date.strftime('%Y-%m-%d %H:%M:%S') }}
+                            <i class="fas fa-user ms-2"></i> Sender ID: {{ result.sender_id }}
+                            <i class="fas fa-envelope ms-2"></i> Message ID: {{ result.message_id }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No messages analyzed yet</h5>
+            <p class="text-muted">Run the monitoring tool to analyze messages from this channel</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterResults() {
+    const filterType = document.getElementById('filterType').value;
+    const messages = document.querySelectorAll('.message-item');
+    
+    messages.forEach(message => {
+        const prediction = message.dataset.prediction;
+        if (filterType === 'all' || prediction === filterType) {
+            message.style.display = 'block';
+        } else {
+            message.style.display = 'none';
+        }
+    });
+}
+
+function sortResults() {
+    const sortBy = document.getElementById('sortBy').value;
+    const container = document.getElementById('resultsContainer');
+    const messages = Array.from(container.querySelectorAll('.message-item'));
+    
+    messages.sort((a, b) => {
+        switch(sortBy) {
+            case 'confidence':
+                return parseFloat(b.dataset.confidence) - parseFloat(a.dataset.confidence);
+            case 'prediction':
+                return a.dataset.prediction.localeCompare(b.dataset.prediction);
+            case 'date':
+            default:
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+        }
+    });
+    
+    // Re-append sorted messages
+    messages.forEach(message => container.appendChild(message));
+}
+</script>
+{% endblock %}

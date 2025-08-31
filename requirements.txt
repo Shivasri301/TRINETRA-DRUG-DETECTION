@@ -1,0 +1,33 @@
+# Core web framework
+Flask==2.3.3
+Werkzeug==2.3.7
+gunicorn==21.2.0
+
+# Database connectivity
+pymongo==4.5.0
+dnspython==2.4.2
+
+# Telegram API
+telethon==1.30.3
+
+# AI/ML for drug detection
+transformers==4.35.2
+torch==2.1.1+cpu
+numpy==1.24.4
+scipy==1.11.4
+tf-keras==2.15.0
+tensorflow==2.15.0
+
+# Security and utilities
+bcrypt==4.0.1
+python-dotenv==1.0.0
+requests==2.31.0
+
+# Additional required packages
+safetensors==0.4.0
+tokenizers==0.15.0
+huggingface-hub==0.17.3
+
+# Cloud deployment specific
+psutil==5.9.6
+setuptools==68.2.2

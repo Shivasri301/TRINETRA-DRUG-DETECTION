@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: telegram-drug-monitor
+    env: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_NAME
+        value: telegram_drug_monitor
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHONPATH
+        value: .
+    autoDeploy: true
+    healthCheckPath: /health
+    plan: starter
+    runtime: python3
+    disk:
+      name: telegram-monitor-disk
+      mountPath: /tmp
+      sizeGB: 1
+    scaling:
+      minInstances: 1
+      maxInstances: 3

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Telegram Drug Monitor{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="fas fa-user-plus"></i> Register</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">Create an account to start monitoring Telegram channels for drug-related activity.</p>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                        <div class="form-text">Choose a unique username for your account</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password *</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">Choose a strong password</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_id" class="form-label">Telegram API ID *</label>
+                        <input type="number" class="form-control" id="api_id" name="api_id" required>
+                        <div class="form-text">
+                            Get your API ID from <a href="https://my.telegram.org" target="_blank">my.telegram.org</a>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="api_hash" class="form-label">Telegram API Hash *</label>
+                        <input type="text" class="form-control" id="api_hash" name="api_hash" required>
+                        <div class="form-text">
+                            Get your API Hash from <a href="https://my.telegram.org" target="_blank">my.telegram.org</a>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> You need to create a Telegram app at 
+                        <a href="https://my.telegram.org" target="_blank">my.telegram.org</a> 
+                        to get your API credentials.
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-demo"></i>
+                        <strong>Demo Mode:</strong> For testing purposes, you can use any valid-looking credentials. 
+                        The system will generate demo data for presentation.
+                        <br><small>Example: API ID: 12345678, API Hash: abcd1234efgh5678</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-user-plus"></i> Register
+                    </button>
+                </form>
+                
+                <hr>
+                <div class="text-center">
+                    <p class="mb-0">Already have an account? 
+                        <a href="{{ url_for('login') }}">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
