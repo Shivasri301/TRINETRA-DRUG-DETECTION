@@ -68,3 +68,29 @@ exports/
 
 # Windows
 desktop.ini
+
+# Windows executables and DLLs (not needed for Linux deployment)
+*.exe
+*.dll
+
+# Tesseract files (use system tesseract in production)
+tessdata/
+*.html
+
+# Documentation (keep only essential)
+*.md
+!README.md
+!DEPLOYMENT_GUIDE.md
+
+# Test and demo files
+test_*.py
+*_test.py
+demo.py
+hackathon_*.py
+lite_demo.py
+
+# Batch files
+*.bat
+
+# Static doc folder
+doc/

@@ -1,4 +1,4 @@
-# 🚀 Telegram Drug Monitor - Deployment Guide
+# 🚀 Trinetra - Deployment Guide
 
 ## 📋 Pre-Deployment Checklist
 
@@ -70,7 +70,7 @@ python start_production.py
 ```bash
 # Create service file: /etc/systemd/system/telegram-monitor.service
 [Unit]
-Description=Telegram Drug Monitor
+Description=Trinetra
 After=network.target
 
 [Service]
@@ -333,6 +333,6 @@ systemctl restart telegram-monitor
 
 ---
 
-**🏆 Your Telegram Drug Monitor is now ready for production deployment!**
+**🏆 Your Trinetra is now ready for production deployment!**
 
 For additional support or custom configuration, refer to the technical documentation or contact your system administrator.

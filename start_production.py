@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Production start script for Telegram Drug Monitor
+Production start script for Trinetra
 Includes health checks and proper error handling
 """
 
@@ -77,7 +77,7 @@ def check_dependencies():
 
 def start_application():
     """Start the Flask application"""
-    print("🚀 Starting Telegram Drug Monitor...")
+    print("🚀 Starting Trinetra...")
     print("=" * 50)
     
     try:
@@ -106,7 +106,7 @@ def start_application():
 
 def main():
     """Main function with comprehensive checks"""
-    print("🚨 TELEGRAM DRUG MONITOR - PRODUCTION START")
+    print("🚨 TRINETRA - PRODUCTION START")
     print("=" * 60)
     print("🎯 AI-Powered Drug Detection for Law Enforcement")
     print("=" * 60)

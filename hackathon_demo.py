@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Complete Hackathon Demo for Telegram Drug Monitor
+Complete Hackathon Demo for Trinetra
 Shows all functionality without requiring real Telegram API
 """
 
@@ -12,7 +12,7 @@ from datetime import datetime
 async def demo_complete_system():
     """Demonstrate the complete drug monitoring system"""
     
-    print("🚨 TELEGRAM DRUG MONITOR - HACKATHON DEMO")
+    print("🚨 TRINETRA - HACKATHON DEMO")
     print("=" * 70)
     print("🎯 Problem: Detect drug trafficking in Telegram channels")
     print("💡 Solution: AI-powered monitoring with NLP + keyword analysis")
@@ -123,7 +123,7 @@ async def demo_complete_system():
     print("   • Interactive results dashboard")
     
     print("\n" + "=" * 70)
-    print("🏅 TELEGRAM DRUG MONITOR - READY FOR PRODUCTION!")
+    print("🏅 TRINETRA - READY FOR PRODUCTION!")
     print("=" * 70)
 
 def main():

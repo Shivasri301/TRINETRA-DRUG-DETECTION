@@ -1,4 +1,4 @@
-# Telegram Drug Monitor 🚨
+# Trinetra 🚨
 
 A comprehensive software solution for detecting drug-related activities in Telegram channels using advanced NLP and keyword analysis. Built for law enforcement and security professionals to monitor and identify potential drug trafficking operations.
 

@@ -1,9 +1,8 @@
 services:
   - type: web
-    name: telegram-drug-monitor
-    env: python
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 app:app
+    name: trinetra-drug-monitor
+    env: docker
+    dockerfilePath: Dockerfile
     envVars:
       - key: PORT
         generateValue: true
@@ -16,15 +15,27 @@ services:
       - key: FLASK_ENV
         value: production
       - key: PYTHONPATH
-        value: .
+        value: /app
+      - key: TESSDATA_PREFIX
+        value: /usr/share/tesseract-ocr/5/tessdata/
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+    buildCommand: |
+      echo "Starting build process..."
+      echo "Python version: $(python --version)"
+      echo "Tesseract version: $(tesseract --version)"
+      echo "Build completed successfully"
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile - app:app
     autoDeploy: true
     healthCheckPath: /health
     plan: starter
-    runtime: python3
     disk:
-      name: telegram-monitor-disk
-      mountPath: /tmp
-      sizeGB: 1
+      name: trinetra-disk
+      mountPath: /app/temp
+      sizeGB: 2
     scaling:
       minInstances: 1
-      maxInstances: 3
+      maxInstances: 5
+    region: oregon

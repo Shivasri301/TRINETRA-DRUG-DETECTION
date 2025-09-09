@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Setup script for Telegram Drug Monitor
+Setup script for Trinetra
 Installs dependencies and sets up the application
 """
 
@@ -35,7 +35,7 @@ DATABASE_NAME=telegram_drug_monitor""")
         print(".env file created. Please update the SECRET_KEY for production use.")
 
 def main():
-    print("Setting up Telegram Drug Monitor...")
+    print("Setting up Trinetra...")
     
     try:
         install_requirements()

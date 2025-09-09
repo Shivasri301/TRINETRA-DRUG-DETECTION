@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Health check script for Telegram Drug Monitor
+Health check script for Trinetra
 Validates all system components are working correctly
 """
 
@@ -159,7 +159,7 @@ def check_web_application():
 def run_comprehensive_health_check():
     """Run all health checks"""
     
-    print("🚨 TELEGRAM DRUG MONITOR - HEALTH CHECK")
+    print("🚨 TRINETRA - HEALTH CHECK")
     print("=" * 60)
     print(f"🕐 Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)

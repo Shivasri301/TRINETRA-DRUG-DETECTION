@@ -1,4 +1,4 @@
-# 🚀 Render Deployment Guide - Telegram Drug Monitor
+# 🚀 Render Deployment Guide - Trinetra
 
 ## 📋 **Pre-Deployment Checklist**
 
@@ -28,7 +28,7 @@ Before deploying to Render, ensure you have:
    # In your project directory
    git init
    git add .
-   git commit -m "Initial commit - Telegram Drug Monitor for Render deployment"
+   git commit -m "Initial commit - Trinetra for Render deployment"
    git branch -M main
    git remote add origin https://github.com/YOUR_USERNAME/telegram-drug-monitor.git
    git push -u origin main
@@ -161,7 +161,7 @@ Should return:
 {
   "status": "healthy",
   "timestamp": "2024-01-01T00:00:00.000000",
-  "service": "Telegram Drug Monitor",
+  "service": "Trinetra",
   "version": "1.0.0"
 }
 ```
@@ -248,7 +248,7 @@ render logs --service=telegram-drug-monitor --follow
 
 ## 🎉 **Deployment Complete!**
 
-Your **Telegram Drug Monitor** is now live on Render! 
+Your **Trinetra** is now live on Render!
 
 ### **Your Application URL:**
 `https://telegram-drug-monitor-[random].onrender.com`
@@ -280,7 +280,7 @@ git push origin main
 
 ---
 
-**🏆 Your Telegram Drug Monitor is now running in the cloud, ready for professional law enforcement use!**
+**🏆 Your Trinetra is now running in the cloud, ready for professional law enforcement use!**
 
 ## 📱 **Next Steps**
 1. Share your Render URL with authorized users

@@ -12,6 +12,7 @@ from datetime import datetime
 import json
 import glob
 import tempfile
+import re
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
@@ -20,6 +21,41 @@ app.secret_key = os.getenv('SECRET_KEY', 'your-secret-key-change-this')
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+
+def format_indian_phone_number(phone_number):
+    """Format phone number to ensure it has +91 prefix for Indian numbers"""
+    if not phone_number:
+        return phone_number
+    
+    # Remove any spaces or special characters except +
+    cleaned = re.sub(r'[^+0-9]', '', phone_number)
+    
+    # If it already starts with +91, return as is
+    if cleaned.startswith('+91'):
+        return cleaned
+    
+    # If it starts with 91 but no +, validate the Indian mobile number and add +
+    if cleaned.startswith('91') and len(cleaned) == 12:
+        # Extract the 10-digit part and validate
+        mobile_part = cleaned[2:]  # Remove '91' prefix
+        if re.match(r'^[6-9][0-9]{9}$', mobile_part):
+            return '+' + cleaned
+        else:
+            return phone_number  # Return original if invalid
+    
+    # If it's a 10-digit number, assume it's Indian and add +91
+    if re.match(r'^[6-9][0-9]{9}$', cleaned):
+        return '+91' + cleaned
+    
+    # If it starts with +, keep as is (other country code)
+    if cleaned.startswith('+'):
+        return cleaned
+    
+    # Default case - assume Indian number and add +91 (only if valid Indian mobile number)
+    if cleaned.isdigit() and len(cleaned) == 10 and re.match(r'^[6-9][0-9]{9}$', cleaned):
+        return '+91' + cleaned
+    
+    return phone_number  # Return original if we can't determine format
 
 @app.route('/')
 def index():
@@ -197,11 +233,15 @@ def link_telegram():
             otp_code = request.form['otp_code']
             phone_number = request.form['phone_number']
             
-            success, message = telegram_helper.verify_otp(username, phone_number, otp_code)
+            # Format phone number to ensure +91 prefix
+            formatted_phone = format_indian_phone_number(phone_number)
+            print(f"DEBUG: Verifying OTP with formatted phone: {phone_number} -> {formatted_phone}")
+            
+            success, message = telegram_helper.verify_otp(username, formatted_phone, otp_code)
             
             if success:
                 # Update database
-                db.update_telegram_link(username, phone_number)
+                db.update_telegram_link(username, formatted_phone)
                 
                 # Clean up session
                 session.pop('otp_sent', None)
@@ -216,16 +256,20 @@ def link_telegram():
             # Send OTP
             phone_number = request.form['phone_number']
             
+            # Format phone number to ensure +91 prefix
+            formatted_phone = format_indian_phone_number(phone_number)
+            print(f"DEBUG: Formatted phone number in link_telegram: {phone_number} -> {formatted_phone}")
+            
             success, message = telegram_helper.send_otp(
                 user['api_id'], 
                 user['api_hash'], 
-                phone_number, 
+                formatted_phone, 
                 username
             )
             
             if success:
                 session['otp_sent'] = True
-                session['phone_number'] = phone_number
+                session['phone_number'] = formatted_phone
                 flash('OTP sent to your Telegram account!', 'success')
             else:
                 flash(f'Error sending OTP: {message}', 'error')
@@ -362,17 +406,49 @@ def export_csv(channel_id):
     
     username = session['username']
     
-    # Verify channel ownership
-    channel = db.channels.find_one({'_id': ObjectId(channel_id), 'username': username})
-    if not channel:
-        flash('Channel not found!', 'error')
-        return redirect(url_for('dashboard'))
-    
-    # Export results
-    from real_monitor_v2 import real_monitor_v2
-    filename = real_monitor_v2.export_results_to_csv(channel_id)
-    
-    return send_file(filename, as_attachment=True, download_name=f"channel_results_{channel_id}.csv")
+    try:
+        # Verify channel ownership
+        channel = db.channels.find_one({'_id': ObjectId(channel_id), 'username': username})
+        if not channel:
+            flash('Channel not found!', 'error')
+            return redirect(url_for('dashboard'))
+        
+        # Check if there are results to export
+        results = db.get_monitoring_results(channel_id)
+        if not results:
+            flash('No monitoring results found for this channel. Please monitor the channel first.', 'warning')
+            return redirect(url_for('view_results', channel_id=channel_id))
+        
+        # Export results using the main monitor
+        from telegram_monitor import monitor
+        import tempfile
+        import os
+        
+        # Create temporary file for export
+        temp_dir = tempfile.gettempdir()
+        safe_channel_name = channel.get('channel_name', 'unknown').replace('/', '_').replace('\\', '_')
+        temp_filename = os.path.join(temp_dir, f"trinetra_export_{safe_channel_name}_{channel_id}.csv")
+        
+        # Export to temporary file
+        filename = monitor.export_results_to_csv(channel_id, temp_filename)
+        
+        if not os.path.exists(filename):
+            flash('Error creating export file. Please try again.', 'error')
+            return redirect(url_for('view_results', channel_id=channel_id))
+        
+        # Generate download filename with channel name and timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        download_name = f"trinetra_{safe_channel_name}_{timestamp}.csv"
+        
+        print(f"📊 Exporting {len(results)} results for channel {safe_channel_name}")
+        
+        return send_file(filename, as_attachment=True, download_name=download_name)
+        
+    except Exception as e:
+        print(f"Error exporting CSV: {str(e)}")
+        flash('An error occurred while exporting the data. Please try again.', 'error')
+        return redirect(url_for('view_results', channel_id=channel_id))
 
 @app.route('/remove_channel/<channel_id>', methods=['DELETE'])
 def remove_channel(channel_id):
@@ -439,11 +515,15 @@ def send_otp_dashboard():
         if not phone_number:
             return jsonify({'success': False, 'message': 'Phone number is required'})
         
+        # Format phone number to ensure +91 prefix
+        formatted_phone = format_indian_phone_number(phone_number)
+        print(f"DEBUG: Formatted phone number: {phone_number} -> {formatted_phone}")
+        
         # Send OTP using telegram helper and get phone_code_hash
         success, message_or_hash = telegram_helper.send_otp_with_hash(
             user['api_id'], 
             user['api_hash'], 
-            phone_number, 
+            formatted_phone, 
             username
         )
         
@@ -451,9 +531,9 @@ def send_otp_dashboard():
         
         if success:
             # Store phone number and hash in Flask session for verification
-            session['dashboard_phone_number'] = phone_number
+            session['dashboard_phone_number'] = formatted_phone
             session['dashboard_phone_code_hash'] = message_or_hash  # This is the hash
-            print(f"DEBUG: Stored in session - Phone: {phone_number}, Hash: {message_or_hash[:20]}...")
+            print(f"DEBUG: Stored in session - Phone: {formatted_phone}, Hash: {message_or_hash[:20]}...")
             return jsonify({'success': True, 'message': 'OTP sent successfully'})
         else:
             return jsonify({'success': False, 'message': message_or_hash})
@@ -479,6 +559,10 @@ def verify_otp_dashboard():
         if not phone_number or not otp_code:
             return jsonify({'success': False, 'message': 'Phone number and OTP code are required'})
         
+        # Format phone number to ensure +91 prefix
+        formatted_phone = format_indian_phone_number(phone_number)
+        print(f"DEBUG: Formatted phone number for verification: {phone_number} -> {formatted_phone}")
+        
         # Get phone_code_hash from session
         phone_code_hash = session.get('dashboard_phone_code_hash')
         stored_phone = session.get('dashboard_phone_number')
@@ -488,17 +572,17 @@ def verify_otp_dashboard():
         if not phone_code_hash or not stored_phone:
             return jsonify({'success': False, 'message': 'Session expired. Please request a new OTP.'})
         
-        if stored_phone != phone_number:
+        if stored_phone != formatted_phone:
             return jsonify({'success': False, 'message': 'Phone number mismatch. Please request a new OTP.'})
         
         # Verify OTP using telegram helper with phone_code_hash
-        success, message = telegram_helper.verify_otp_with_hash(username, phone_number, otp_code, phone_code_hash)
+        success, message = telegram_helper.verify_otp_with_hash(username, formatted_phone, otp_code, phone_code_hash)
         
         print(f"DEBUG: Verification result - Success: {success}, Message: {message}")
         
         if success:
             # Update database to mark Telegram as linked
-            db.update_telegram_link(username, phone_number)
+            db.update_telegram_link(username, formatted_phone)
             
             # Clean up session
             session.pop('dashboard_phone_number', None)
@@ -549,7 +633,7 @@ def health_check():
         return jsonify({
             'status': 'healthy',
             'timestamp': datetime.utcnow().isoformat(),
-            'service': 'Telegram Drug Monitor',
+            'service': 'Trinetra',
             'version': '1.0.0'
         }), 200
     except Exception as e:
@@ -567,6 +651,70 @@ def not_found(error):
 @app.errorhandler(500)
 def internal_error(error):
     return render_template('error.html', error="Internal server error"), 500
+
+# Lightweight NLP test endpoint
+@app.route('/analyze_text', methods=['POST'])
+def analyze_text():
+	if request.method != 'POST':
+		return jsonify({'success': False, 'message': 'Invalid method'}), 405
+	try:
+		data = request.get_json(silent=True) or {}
+		text = data.get('text', '')
+		if not isinstance(text, str) or not text.strip():
+			return jsonify({'success': False, 'message': 'Provide non-empty text'}), 400
+
+		# Run the async analyze_message
+		loop = asyncio.new_event_loop()
+		asyncio.set_event_loop(loop)
+		try:
+			analysis = loop.run_until_complete(monitor.analyze_message(text))
+		finally:
+			loop.close()
+
+		return jsonify({'success': True, 'analysis': analysis}), 200
+	except Exception as e:
+		return jsonify({'success': False, 'message': str(e)}), 500
+
+# Image analysis endpoint (multipart/form-data)
+@app.route('/analyze_image', methods=['POST'])
+def analyze_image():
+	try:
+		if 'file' not in request.files:
+			return jsonify({'success': False, 'message': 'No file uploaded'}), 400
+		file = request.files['file']
+		image_bytes = file.read()
+		if not image_bytes:
+			return jsonify({'success': False, 'message': 'Empty file'}), 400
+
+		from image_analysis import analyze_image_bytes
+		image_info = analyze_image_bytes(image_bytes)
+
+		# Optional caption analysis with existing NLP hybrid
+		caption = request.form.get('caption', '')
+		caption_analysis = None
+		if caption and caption.strip():
+			loop = asyncio.new_event_loop()
+			asyncio.set_event_loop(loop)
+			try:
+				caption_analysis = loop.run_until_complete(monitor.analyze_message(caption))
+			finally:
+				loop.close()
+
+		# OCR on image and analyze extracted text
+		from ocr import extract_text_from_image_bytes
+		ocr_result = extract_text_from_image_bytes(image_bytes)
+		ocr_analysis = None
+		if ocr_result.get('ok') and ocr_result.get('text'):
+			loop2 = asyncio.new_event_loop()
+			asyncio.set_event_loop(loop2)
+			try:
+				ocr_analysis = loop2.run_until_complete(monitor.analyze_message(ocr_result['text']))
+			finally:
+				loop2.close()
+
+		return jsonify({'success': True, 'image': image_info, 'caption_analysis': caption_analysis, 'ocr': ocr_result, 'ocr_analysis': ocr_analysis}), 200
+	except Exception as e:
+		return jsonify({'success': False, 'message': str(e)}), 500
 
 # Make app available for gunicorn app:app (Render auto-detection)
 application = app

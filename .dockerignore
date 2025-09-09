@@ -1,0 +1,80 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.pytest_cache
+.coverage
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Session files (these are created at runtime)
+*.session
+
+# Local test files
+test_*.py
+*_test.py
+demo.py
+hackathon_*.py
+
+# Documentation
+*.md
+!README.md
+
+# Windows executables and DLLs (not needed in Linux container)
+*.exe
+*.dll
+
+# Tesseract files (we'll use system tesseract)
+tesseract-uninstall.exe
+tessdata/
+ambiguous_words.*
+classifier_tester.*
+cntraining.*
+combine_lang_model.*
+combine_tessdata.*
+dawg2wordlist.*
+lstmeval.*
+lstmtraining.*
+merge_unicharsets.*
+mftraining.*
+set_unicharset_properties.*
+shapeclustering.*
+text2image.*
+unicharambigs.*
+unicharset.*
+unicharset_extractor.*
+winpath.*
+wordlist2dawg.*
+
+# Temporary files
+temp_*
+channel_*.csv
+
+# Local config
+.env
+
+# Batch files
+*.bat
+
+# HTML documentation
+*.html

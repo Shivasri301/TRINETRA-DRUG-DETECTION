@@ -1,4 +1,4 @@
-# 🚨 Telegram Drug Monitor - Hackathon Solution
+# 🚨 Trinetra - Hackathon Solution
 
 ## 🎯 **Problem Statement**
 Develop a software solution that takes Telegram channel links and identifies whether they sell drugs in India. Drug traffickers use Telegram channels and bots to offer dangerous synthetic drugs like MDMA, LSD, and Mephedrone for sale to subscribers.

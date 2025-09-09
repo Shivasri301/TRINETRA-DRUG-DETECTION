@@ -93,7 +93,7 @@ class LiteDrugDetector:
 def demo_detection_system():
     """Demo the drug detection system"""
     
-    print("🚨 TELEGRAM DRUG MONITOR - LITE DEMO")
+    print("🚨 TRINETRA - LITE DEMO")
     print("=" * 70)
     print("🎯 Hackathon Solution: AI-Powered Drug Detection for Telegram")
     print("=" * 70)
@@ -209,7 +209,7 @@ def demo_detection_system():
     print("🎯 Features: Interactive dashboard, real-time alerts, data export")
     
     print("\n" + "=" * 70)
-    print("🏅 TELEGRAM DRUG MONITOR - HACKATHON SOLUTION COMPLETE!")
+    print("🏅 TRINETRA - HACKATHON SOLUTION COMPLETE!")
     print("   Ready for production deployment and law enforcement use")
     print("=" * 70)
 

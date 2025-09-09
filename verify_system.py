@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Complete system verification for Telegram Drug Monitor
+Complete system verification for Trinetra
 Checks all components are working correctly
 """
 
@@ -79,7 +79,7 @@ def check_flask_app():
 
 def main():
     """Run complete system verification"""
-    print("🚨 Telegram Drug Monitor - System Verification")
+    print("🚨 Trinetra - System Verification")
     print("=" * 60)
     
     checks = [
@@ -106,7 +106,7 @@ def main():
     print(f"📊 VERIFICATION RESULTS: {passed}/{total} checks passed")
     
     if passed == total:
-        print("🎉 ALL SYSTEMS GO! Your Telegram Drug Monitor is ready!")
+        print("🎉 ALL SYSTEMS GO! Your Trinetra is ready!")
         print("\n🚀 To start the application:")
         print("   python app.py")
         print("\n📱 Then open: http://localhost:5000")

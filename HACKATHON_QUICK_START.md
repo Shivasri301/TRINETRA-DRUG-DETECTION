@@ -1,4 +1,4 @@
-# 🚨 Telegram Drug Monitor - Quick Start Guide
+# 🚨 Trinetra - Quick Start Guide
 
 ## 🎯 **Hackathon Solution Summary**
 **Problem**: Detect drug trafficking in Telegram channels in India  

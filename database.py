@@ -134,6 +134,12 @@ class Database:
             {"channel_id": channel_id}
         ).sort("processed_at", -1).limit(limit))
 
+    def get_all_monitoring_results(self, channel_id):
+        """Get all monitoring results for a channel (no limit)"""
+        return list(self.monitoring_results.find({
+            "channel_id": channel_id
+        }).sort("processed_at", -1))
+
     def get_alerts(self, username, status="new"):
         """Get alerts for user's channels"""
         user_channels = self.get_user_channels(username)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Quick start script for Telegram Drug Monitor
+Quick start script for Trinetra
 """
 
 import os
@@ -33,7 +33,7 @@ def check_environment():
     return True
 
 def main():
-    print("🚀 Starting Telegram Drug Monitor...")
+    print("🚀 Starting Trinetra...")
     print("=" * 50)
     
     # Check prerequisites

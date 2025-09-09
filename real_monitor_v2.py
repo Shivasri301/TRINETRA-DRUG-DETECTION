@@ -278,9 +278,12 @@ class RealTelegramMonitorV2:
         if not filename:
             filename = f"channel_{channel_id}_results.csv"
         
-        results = db.get_monitoring_results(channel_id)
+        # Fetch all results (no limit) and sort oldest-first for readability
+        results = db.get_all_monitoring_results(channel_id)
+        results.reverse()
         
-        with open(filename, "w", newline="", encoding="utf-8") as f:
+        # Use UTF-8 with BOM for Excel compatibility on Windows
+        with open(filename, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
             writer.writerow([
                 "Message ID", "Sender ID", "Date", "Message Text", 
@@ -288,11 +291,21 @@ class RealTelegramMonitorV2:
             ])
             
             for result in results:
+                date_val = result.get("date")
+                if isinstance(date_val, datetime):
+                    date_str = date_val.isoformat()
+                else:
+                    date_str = str(date_val) if date_val is not None else ""
+                
+                message_text = result.get("message_text") or ""
+                # Normalize newlines to avoid breaking CSV parsing in some tools
+                message_text = message_text.replace("\r\n", " ").replace("\n", " ")
+                
                 writer.writerow([
                     result.get("message_id"),
                     result.get("sender_id"),
-                    result.get("date"),
-                    result.get("message_text"),
+                    date_str,
+                    message_text,
                     result.get("prediction"),
                     result.get("confidence"),
                     ", ".join(result.get("keyword_matches", []))

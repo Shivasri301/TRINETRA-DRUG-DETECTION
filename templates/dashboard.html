@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Telegram Drug Monitor{% endblock %}
+{% block title %}Dashboard - Trinetra{% endblock %}
 
 {% block content %}
 <!-- Welcome Message -->
 <div class="alert alert-info">
-    <i class="fas fa-shield-alt"></i>
-    <strong>Welcome to Telegram Drug Monitor!</strong> 
+    <img src="/static/images/Image2.jpg" alt="shield" style="width:48px; height:48px;">
+    <strong>Welcome to Trinetra!</strong>
     {% if not user.telegram_linked %}
         Please link your Telegram account first to start monitoring channels.
     {% else %}
@@ -44,9 +44,12 @@
                         <form id="send-otp-form">
                             <div class="mb-3">
                                 <label for="phone_number" class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="phone_number" name="phone_number" 
-                                       placeholder="+91XXXXXXXXXX" required>
-                                <div class="form-text">Enter your phone number in international format (e.g., +91XXXXXXXXXX)</div>
+                                <div class="input-group">
+                                    <span class="input-group-text">+91</span>
+                                    <input type="tel" class="form-control" id="phone_number" name="phone_number" 
+                                           placeholder="XXXXXXXXXX" pattern="[0-9]{10}" maxlength="10" required>
+                                </div>
+                                <div class="form-text">Enter your 10-digit mobile number (without +91)</div>
                             </div>
                             
                             <button type="submit" class="btn btn-warning w-100">
@@ -125,6 +128,49 @@
             <div class="card-body text-center">
                 <h3>{{ alerts|length }}</h3>
                 <p class="mb-0"><i class="fas fa-exclamation-triangle"></i> Active Alerts</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if user.telegram_linked %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-image"></i> Analyze Image (OCR + Caption)</h5>
+            </div>
+            <div class="card-body">
+                <form id="image-analyze-form">
+                    <div class="mb-3">
+                        <label class="form-label">Image file</label>
+                        <input type="file" class="form-control" id="image-file" name="file" accept="image/*" required>
+                        <div class="form-text">Upload an image. We will extract text (OCR) and analyze it.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Optional caption</label>
+                        <input type="text" class="form-control" id="image-caption" name="caption" placeholder="e.g., price list, DM for details">
+                    </div>
+                    <button type="submit" class="btn btn-secondary">
+                        <i class="fas fa-search"></i> Analyze Image
+                    </button>
+                </form>
+                <hr>
+                <div id="image-analyze-result" style="display:none;">
+                    <h6 class="mb-2">Result</h6>
+                    <div class="mb-2" id="image-analyze-summary">
+                        <div><strong>Prediction:</strong> <span id="res-pred">-</span></div>
+                        <div><strong>Confidence:</strong> <span id="res-conf">-</span></div>
+                        <div><strong>OCR text:</strong> <span id="res-ocr-text">(none)</span></div>
+                        <div class="text-muted small"><strong>Image:</strong> <span id="res-img-info">-</span></div>
+                        <div class="text-muted small" id="res-label-scores" style="display:none;"></div>
+                    </div>
+                    <details>
+                        <summary>Show details (JSON)</summary>
+                        <pre class="bg-light p-3 mt-2" style="white-space: pre-wrap;" id="image-analyze-json"></pre>
+                    </details>
+                </div>
             </div>
         </div>
     </div>
@@ -368,6 +414,70 @@ document.addEventListener('DOMContentLoaded', function() {
             verifyOTP();
         });
     }
+
+    const imageForm = document.getElementById('image-analyze-form');
+    if (imageForm) {
+        imageForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('image-file');
+            const captionInput = document.getElementById('image-caption');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                showMessage('Please choose an image file', 'warning');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            if (captionInput && captionInput.value.trim()) {
+                formData.append('caption', captionInput.value.trim());
+            }
+            const btn = imageForm.querySelector('button[type="submit"]');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+            btn.disabled = true;
+            try {
+                const resp = await fetch('/analyze_image', { method: 'POST', body: formData });
+                const data = await resp.json();
+                if (!resp.ok || !data.success) {
+                    throw new Error(data.message || ('HTTP ' + resp.status));
+                }
+                // Build concise summary
+                const predSource = data.ocr_analysis || data.caption_analysis || null;
+                const pred = predSource ? (predSource.prediction || '-') : '-';
+                const conf = predSource && typeof predSource.confidence === 'number' ? Math.round(predSource.confidence * 100) + '%' : '-';
+                const ocrText = (data.ocr && data.ocr.ok && data.ocr.text) ? data.ocr.text.trim() : '';
+                const ocrPreview = ocrText ? (ocrText.length > 160 ? (ocrText.slice(0,160) + '…') : ocrText) : '(none)';
+                const fmt = (data.image && data.image.format) ? data.image.format : '-';
+                const size = (data.image && data.image.size && data.image.size.length === 2) ? (data.image.size[0] + 'x' + data.image.size[1]) : '-';
+                document.getElementById('res-pred').textContent = pred;
+                document.getElementById('res-conf').textContent = conf;
+                document.getElementById('res-ocr-text').textContent = ocrPreview;
+                document.getElementById('res-img-info').textContent = fmt + ', ' + size;
+                // Keep full JSON in collapsible details for debugging
+                const pre = document.getElementById('image-analyze-json');
+                pre.textContent = JSON.stringify(data, null, 2);
+                // Optional per-label scores
+                const scoresDiv = document.getElementById('res-label-scores');
+                const ls = predSource && predSource.nlp_label_scores ? predSource.nlp_label_scores : null;
+                if (ls) {
+                    const order = ['drug sale','normal','spam','other'];
+                    const parts = order
+                        .filter(k => k in ls)
+                        .map(k => `${k}: ${Math.round(ls[k]*100)}%`);
+                    scoresDiv.textContent = parts.join('  |  ');
+                    scoresDiv.style.display = 'block';
+                } else {
+                    scoresDiv.style.display = 'none';
+                }
+                document.getElementById('image-analyze-result').style.display = 'block';
+                showMessage('Image analyzed successfully', 'success');
+            } catch (err) {
+                showMessage('Image analysis failed: ' + err.message, 'error');
+            } finally {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        });
+    }
 });
 
 function sendOTP() {
@@ -380,6 +490,15 @@ function sendOTP() {
         return;
     }
     
+    // Validate 10-digit number
+    if (!/^[0-9]{10}$/.test(phoneNumber)) {
+        alert('Please enter a valid 10-digit mobile number');
+        return;
+    }
+    
+    // Prepend +91 to the phone number
+    const fullPhoneNumber = '+91' + phoneNumber;
+    
     // Disable button and show loading
     const submitBtn = document.querySelector('#send-otp-form button[type="submit"]');
     const originalText = submitBtn.innerHTML;
@@ -387,7 +506,7 @@ function sendOTP() {
     submitBtn.disabled = true;
     
     const requestData = {
-        phone_number: phoneNumber
+        phone_number: fullPhoneNumber
     };
     
     console.log('DEBUG: Sending OTP request:', requestData);
@@ -415,7 +534,7 @@ function sendOTP() {
             // Hide phone input section and show OTP section
             document.getElementById('phone-input-section').style.display = 'none';
             document.getElementById('otp-verification-section').style.display = 'block';
-            document.getElementById('verified_phone_number').value = phoneNumber;
+            document.getElementById('verified_phone_number').value = fullPhoneNumber;
             
             // Show success message
             showMessage('OTP sent to your Telegram account! Check your Telegram app.', 'success');

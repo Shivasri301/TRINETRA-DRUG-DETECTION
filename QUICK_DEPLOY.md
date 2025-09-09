@@ -1,4 +1,4 @@
-# 🚀 Quick Deployment Guide - Telegram Drug Monitor
+# 🚀 Quick Deployment Guide - Trinetra
 
 ## ⚡ **IMMEDIATE START (30 Seconds)**
 
@@ -213,5 +213,5 @@ py app.py
 
 ---
 
-**🏆 Telegram Drug Monitor - AI-Powered Drug Detection for Law Enforcement**  
+**🏆 Trinetra - AI-Powered Drug Detection for Law Enforcement**
 **Ready for production deployment and hackathon demonstration!**

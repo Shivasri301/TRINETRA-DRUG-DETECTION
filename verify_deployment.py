@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Deployment verification script for Telegram Drug Monitor
+Deployment verification script for Trinetra
 Quick check before deployment to ensure compatibility
 """
 

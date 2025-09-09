@@ -30,7 +30,7 @@ test_messages = [
 
 async def demo_analysis():
     """Demonstrate the drug detection algorithm"""
-    print("🧪 Telegram Drug Monitor - Detection Demo")
+    print("🧪 Trinetra - Detection Demo")
     print("=" * 60)
     
     monitor = TelegramMonitor()

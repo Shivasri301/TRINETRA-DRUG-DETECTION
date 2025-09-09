@@ -1,4 +1,4 @@
-# ✅ Render Deployment Checklist - Telegram Drug Monitor
+# ✅ Render Deployment Checklist - Trinetra
 
 ## 🚀 **Quick Start Checklist**
 
@@ -153,7 +153,7 @@ python wsgi.py
 
 ## 🏆 **You're Ready to Deploy!**
 
-Your **Telegram Drug Monitor** is now configured for **Render cloud deployment** with:
+Your **Trinetra** is now configured for **Render cloud deployment** with:
 
 - ✅ **Production-ready architecture**
 - ✅ **Cloud-compatible session handling**

@@ -35,7 +35,7 @@
    ```bash
    git init
    git add .
-   git commit -m "Telegram Drug Monitor - Ready for Render deployment"
+   git commit -m "Trinetra - Ready for Render deployment"
    git branch -M main
    git remote add origin https://github.com/YOUR_USERNAME/telegram-drug-monitor.git
    git push -u origin main
