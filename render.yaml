@@ -27,7 +27,7 @@ services:
       echo "Python version: $(python --version)"
       echo "Tesseract version: $(tesseract --version)"
       echo "Build completed successfully"
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile - app:app
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --access-logfile - --error-logfile - app:app"
     autoDeploy: true
     healthCheckPath: /health
     plan: starter
